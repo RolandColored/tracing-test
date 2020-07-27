@@ -2,10 +2,11 @@ import unittest
 
 import networkx as nx
 
-from tracing.graph import Graph
+from tracing.graph import Graph, GraphException
 
 
-class TestGraph(unittest.TestCase):
+class TestGraphSetup(unittest.TestCase):
+
     def test_empty_graph(self):
         test_graph = Graph("")
         self.assertEqual(0, test_graph.graph.number_of_nodes())
@@ -25,8 +26,15 @@ class TestGraph(unittest.TestCase):
         sum_weights = sum(value for _, value in nx.get_edge_attributes(test_graph.graph, 'weight').items())
         self.assertTrue(11, sum_weights)
 
+    def test_real_graph(self):
+        with open('test_graph.txt', 'r') as file:
+            graph_definition = file.read()
+        test_graph = Graph(graph_definition)
+        self.assertEqual(5, test_graph.graph.number_of_nodes())
+        self.assertEqual(9, test_graph.graph.number_of_edges())
+
     def test_loop_graph(self):
-        with self.assertRaises(Exception) as context:
+        with self.assertRaises(GraphException) as context:
             test_graph = Graph("AA1")
         self.assertTrue('loops' in str(context.exception))
 

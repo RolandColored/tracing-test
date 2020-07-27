@@ -20,6 +20,10 @@ class TestGraphTrace(unittest.TestCase):
             self.test_graph.total_avg_latency("A-E-D")
         self.assertTrue('no such trace' in str(context.exception))
 
+    def test_shortest_trace(self):
+        self.assertEqual(9, self.test_graph.shortest_trace("A", "C"))
+        self.assertEqual(9, self.test_graph.shortest_trace("B", "B"))
+
 
 if __name__ == '__main__':
     unittest.main()

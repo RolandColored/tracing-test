@@ -34,6 +34,26 @@ class Graph:
             raise GraphException("no such trace")
         return sum(edge["weight"] for edge in edges)
 
+    def shortest_trace(self, start_node: str, end_node: str) -> int:
+        """
+        Finds the shortest path through our trace graph.
+        :param start_node: the source node
+        :param end_node: the target node
+        :return: total path costs
+        """
+        if start_node == end_node:
+            # The method shortest_path_length checks for this condition and returns 0.
+            # But we don't want to allow these traces so we need to do a trick.
+            # We will clone the graph and add a fake node start_node' with all original outgoing edges.
+            graph_to_use = self.graph.copy()
+            outgoing_edges = graph_to_use.edges(nbunch=[start_node])
+            new_edges = [(u+"'", v, graph_to_use.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
+            graph_to_use.add_weighted_edges_from(new_edges)
+            start_node = start_node+"'"
+        else:
+            graph_to_use = self.graph
+        return nx.shortest_path_length(graph_to_use, start_node, end_node, "weight")
+
     @staticmethod
     def _parse_definition_str(definition_str: str) -> List[Tuple]:
         """

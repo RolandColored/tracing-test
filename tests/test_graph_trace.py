@@ -1,6 +1,6 @@
 import unittest
 
-from tracing.graph import Graph
+from tracing.graph import Graph, GraphException
 
 
 class TestGraphTrace(unittest.TestCase):
@@ -10,8 +10,15 @@ class TestGraphTrace(unittest.TestCase):
             graph_definition = file.read()
             self.test_graph = Graph(graph_definition)
 
-    def test_avg_latency(self):
-        self.assertEqual(9, self.test_graph.avg_latency("A-B-C"))
+    def test_total_avg_latency(self):
+        self.assertEqual(9, self.test_graph.total_avg_latency("A-B-C"))
+        self.assertEqual(5, self.test_graph.total_avg_latency("A-D"))
+        self.assertEqual(13, self.test_graph.total_avg_latency("A-D-C"))
+        self.assertEqual(22, self.test_graph.total_avg_latency("A-E-B-C-D"))
+
+        with self.assertRaises(GraphException) as context:
+            self.test_graph.total_avg_latency("A-E-D")
+        self.assertTrue('no such trace' in str(context.exception))
 
 
 if __name__ == '__main__':

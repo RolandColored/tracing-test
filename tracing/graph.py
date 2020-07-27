@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 import networkx as nx
+from networkx.utils import pairwise
 
 
 class GraphException(Exception):
@@ -20,14 +21,18 @@ class Graph:
         if nx.number_of_selfloops(self.graph) > 0:
             raise GraphException("loops are not allowed")
 
-    def avg_latency(self, trace: str) -> int:
+    def total_avg_latency(self, trace: str) -> int:
         """
         Calculates the average latency for the given trace. Raises a GraphException if no such trace exists.
         :param trace: trace in the format "A-B-C"
         :return: average latency
         """
-        trace_list = trace.split("-")
-        return 0
+        node_path = trace.split("-")
+        edge_path = list(pairwise(node_path))
+        edges = [self.graph.get_edge_data(u, v) for u, v in edge_path]
+        if None in edges:
+            raise GraphException("no such trace")
+        return sum(edge["weight"] for edge in edges)
 
     @staticmethod
     def _parse_definition_str(definition_str: str) -> List[Tuple]:

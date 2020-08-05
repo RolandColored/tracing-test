@@ -21,18 +21,36 @@ class Graph:
         if nx.number_of_selfloops(self.graph) > 0:
             raise GraphException("loops are not allowed")
 
-    def total_avg_latency(self, trace: str) -> int:
+    def total_avg_latency(self, trace: str) -> int or str:
         """
-        Calculates the average latency for the given trace. Raises a GraphException if no such trace exists.
+        Calculates the average latency for the given trace.
         :param trace: trace in the format "A-B-C"
-        :return: average latency
+        :return: average latency or "NO SUCH TRACE"
         """
         node_path = trace.split("-")
         edge_path = list(pairwise(node_path))
         edges = [self.graph.get_edge_data(u, v) for u, v in edge_path]
         if None in edges:
-            raise GraphException("no such trace")
+            return "NO SUCH TRACE"
         return sum(edge["weight"] for edge in edges)
+
+    def number_of_traces(self, start_node: str, end_node: str, max_hops: int, min_hops: int = None) -> int:
+        """
+        Finds the number of traces originating in start_node and ending in end_node with a maximum of max_hops hop
+        :param start_node: the source node
+        :param end_node: the target node
+        :param max_hops: maximum number of hops to look for
+        :param max_hops: minimum number of hops to look for
+        :return: number of traces
+        """
+        if start_node == end_node:
+            graph_to_use, start_node = self._clone_with_fake_start(start_node)
+        else:
+            graph_to_use = self.graph
+
+        all_paths = list(nx.all_simple_paths(graph_to_use, start_node, end_node, max_hops))
+        print(all_paths)
+        return len(all_paths)
 
     def shortest_trace(self, start_node: str, end_node: str) -> int:
         """
@@ -42,17 +60,22 @@ class Graph:
         :return: total path costs
         """
         if start_node == end_node:
-            # The method shortest_path_length checks for this condition and returns 0.
-            # But we don't want to allow these traces so we need to do a trick.
-            # We will clone the graph and add a fake node start_node' with all original outgoing edges.
-            graph_to_use = self.graph.copy()
-            outgoing_edges = graph_to_use.edges(nbunch=[start_node])
-            new_edges = [(u+"'", v, graph_to_use.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
-            graph_to_use.add_weighted_edges_from(new_edges)
-            start_node = start_node+"'"
+            graph_to_use, start_node = self._clone_with_fake_start(start_node)
         else:
             graph_to_use = self.graph
+
         return nx.shortest_path_length(graph_to_use, start_node, end_node, "weight")
+
+    def _clone_with_fake_start(self, start_node):
+        # The method shortest_path_length checks for this condition and returns 0.
+        # But we don't want to allow these traces so we need to do a trick.
+        # We will clone the graph and add a fake node start_node' with all original outgoing edges.
+        graph_to_use = self.graph.copy()
+        outgoing_edges = graph_to_use.edges(nbunch=[start_node])
+        new_edges = [(u + "'", v, graph_to_use.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
+        graph_to_use.add_weighted_edges_from(new_edges)
+        start_node = start_node + "'"
+        return graph_to_use, start_node
 
     @staticmethod
     def _parse_definition_str(definition_str: str) -> List[Tuple]:

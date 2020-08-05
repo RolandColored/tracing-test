@@ -17,6 +17,7 @@ class Graph:
         """
         self.graph = nx.DiGraph()
         self.graph.add_weighted_edges_from(self._parse_definition_str(definition_str))
+        self.duplicate_graph = self._clone_with_duplicate_nodes()
 
         if nx.number_of_selfloops(self.graph) > 0:
             raise GraphException("loops are not allowed")
@@ -43,12 +44,7 @@ class Graph:
         :param max_hops: minimum number of hops to look for
         :return: number of traces
         """
-        if start_node == end_node:
-            graph_to_use, start_node = self._clone_with_fake_start(start_node)
-        else:
-            graph_to_use = self.graph
-
-        all_paths = list(nx.all_simple_paths(graph_to_use, start_node, end_node, max_hops))
+        all_paths = list(nx.all_simple_paths(self.duplicate_graph, start_node+"'", end_node+"''", max_hops))
         print(all_paths)
         return len(all_paths)
 
@@ -59,23 +55,21 @@ class Graph:
         :param end_node: the target node
         :return: total path costs
         """
-        if start_node == end_node:
-            graph_to_use, start_node = self._clone_with_fake_start(start_node)
-        else:
-            graph_to_use = self.graph
+        return nx.shortest_path_length(self.duplicate_graph, start_node+"'", end_node, "weight")
 
-        return nx.shortest_path_length(graph_to_use, start_node, end_node, "weight")
-
-    def _clone_with_fake_start(self, start_node):
-        # The method shortest_path_length checks for this condition and returns 0.
+    def _clone_with_duplicate_nodes(self):
+        # The method shortest_path_length checks for start_node==end_node and returns 0.
         # But we don't want to allow these traces so we need to do a trick.
-        # We will clone the graph and add a fake node start_node' with all original outgoing edges.
-        graph_to_use = self.graph.copy()
-        outgoing_edges = graph_to_use.edges(nbunch=[start_node])
-        new_edges = [(u + "'", v, graph_to_use.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
-        graph_to_use.add_weighted_edges_from(new_edges)
-        start_node = start_node + "'"
-        return graph_to_use, start_node
+        # We will clone the graph and add for each node a duplicate node' with all original outgoing edges.
+        # The same will be done as node'' but fot the incoming edges.
+        graph_clone = self.graph.copy()
+        outgoing_edges = graph_clone.edges()
+        new_start_edges = [(u + "'", v, graph_clone.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
+        graph_clone.add_weighted_edges_from(new_start_edges)
+
+        new_end_edges = [(u, v + "''", graph_clone.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
+        graph_clone.add_weighted_edges_from(new_end_edges)
+        return graph_clone
 
     @staticmethod
     def _parse_definition_str(definition_str: str) -> List[Tuple]:

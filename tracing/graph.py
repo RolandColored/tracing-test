@@ -1,3 +1,4 @@
+from itertools import combinations
 from typing import List, Tuple
 
 import networkx as nx
@@ -35,18 +36,23 @@ class Graph:
             return "NO SUCH TRACE"
         return sum(edge["weight"] for edge in edges)
 
-    def number_of_traces(self, start_node: str, end_node: str, max_hops: int, min_hops: int = None) -> int:
+    def number_of_traces(self, start_node: str, end_node: str, max_hops: int, min_hops: int = 1) -> int:
         """
         Finds the number of traces originating in start_node and ending in end_node with a maximum of max_hops hop
         :param start_node: the source node
         :param end_node: the target node
         :param max_hops: maximum number of hops to look for
-        :param max_hops: minimum number of hops to look for
+        :param min_hops: minimum number of hops to look for
         :return: number of traces
         """
-        all_paths = list(nx.all_simple_paths(self.duplicate_graph, start_node+"'", end_node+"''", max_hops))
-        print(all_paths)
-        return len(all_paths)
+        all_max_length_paths = list(self._traverse_for_path(start_node, max_hops))
+        mixed_length_paths = list(all_max_length_paths)
+
+        for length in range(min_hops, max_hops):
+            shorter_paths = [path[0:length+1] for path in all_max_length_paths]
+            mixed_length_paths += shorter_paths
+
+        return len([path for path in set(mixed_length_paths) if path[-1] == end_node])
 
     def shortest_trace(self, start_node: str, end_node: str) -> int:
         """
@@ -57,18 +63,22 @@ class Graph:
         """
         return nx.shortest_path_length(self.duplicate_graph, start_node+"'", end_node, "weight")
 
+    def _traverse_for_path(self, current_node: str, hops_left: int) -> list:
+        if hops_left == 0:
+            yield current_node
+        else:
+            for successor in self.graph.successors(current_node):
+                for path in self._traverse_for_path(successor, hops_left - 1):
+                    yield current_node + path
+
     def _clone_with_duplicate_nodes(self):
         # The method shortest_path_length checks for start_node==end_node and returns 0.
         # But we don't want to allow these traces so we need to do a trick.
         # We will clone the graph and add for each node a duplicate node' with all original outgoing edges.
-        # The same will be done as node'' but fot the incoming edges.
         graph_clone = self.graph.copy()
         outgoing_edges = graph_clone.edges()
         new_start_edges = [(u + "'", v, graph_clone.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
         graph_clone.add_weighted_edges_from(new_start_edges)
-
-        new_end_edges = [(u, v + "''", graph_clone.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
-        graph_clone.add_weighted_edges_from(new_end_edges)
         return graph_clone
 
     @staticmethod

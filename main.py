@@ -22,5 +22,5 @@ print(f'6. {graph.number_of_traces("C", "C", 3)}')
 print(f'7. {graph.number_of_traces("A", "C", 4, 4)}')
 print(f'8. {graph.shortest_trace("A", "C")}')
 print(f'9. {graph.shortest_trace("B", "B")}')
-print(f'10. TODO {None}')
+print(f'10. {graph.number_of_traces_shorter("C", "C", 30)}')
 

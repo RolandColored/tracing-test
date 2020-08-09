@@ -9,6 +9,6 @@
  - Clone source, enter dir
  - Enter a *pipenv* environment `pipenv shell`
  - Install dependencies `pipenv install`
- - Run `python main.py`
+ - Run `python main.py path/to/graph.txt`
  - ???
  - Profit!

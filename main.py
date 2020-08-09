@@ -1,8 +1,16 @@
+import sys
+
 from tracing.graph import Graph
 
-graph_definition = "AB5, BC4, CD8, DC8, DE6, AD5, CE2, EB3, AE7"
 
-graph = Graph(graph_definition)
+if len(sys.argv) != 2:
+    print("Please provide the path to the graph definition text file (and nothing else)")
+    exit(1)
+
+path = sys.argv[1]
+with open(sys.argv[1], 'r') as file:
+    graph_definition = file.read()
+    graph = Graph(graph_definition)
 
 
 print(f'1. {graph.total_avg_latency("A-B-C")}')
@@ -14,5 +22,5 @@ print(f'6. {graph.number_of_traces("C", "C", 3)}')
 print(f'7. {graph.number_of_traces("A", "C", 4, 4)}')
 print(f'8. {graph.shortest_trace("A", "C")}')
 print(f'9. {graph.shortest_trace("B", "B")}')
-print(f'10. {None}')
+print(f'10. TODO {None}')
 

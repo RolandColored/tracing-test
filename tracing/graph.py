@@ -5,6 +5,9 @@ import networkx as nx
 from networkx.utils import pairwise
 
 
+GRAPH_EDGE_ATTRIBUTE_AVG_LATENCY = "weight"
+
+
 class GraphException(Exception):
     pass
 
@@ -38,14 +41,14 @@ class Graph:
 
     def number_of_traces(self, start_node: str, end_node: str, max_hops: int, min_hops: int = 1) -> int:
         """
-        Finds the number of traces originating in start_node and ending in end_node with a maximum of max_hops hop
+        Finds the number of traces originating in start_node and ending in end_node with a maximum of max_hops hops
         :param start_node: the source node
         :param end_node: the target node
         :param max_hops: maximum number of hops to look for
         :param min_hops: minimum number of hops to look for
         :return: number of traces
         """
-        all_max_length_paths = list(self._traverse_for_path(start_node, max_hops))
+        all_max_length_paths = list(self._traverse_for_max_hops_path(start_node, max_hops))
         mixed_length_paths = list(all_max_length_paths)
 
         for length in range(min_hops, max_hops):
@@ -61,14 +64,40 @@ class Graph:
         :param end_node: the target node
         :return: total path costs
         """
-        return nx.shortest_path_length(self.duplicate_graph, start_node+"'", end_node, "weight")
+        return nx.shortest_path_length(self.duplicate_graph, start_node+"'", end_node, GRAPH_EDGE_ATTRIBUTE_AVG_LATENCY)
 
-    def _traverse_for_path(self, current_node: str, hops_left: int) -> list:
+    def number_of_traces_shorter(self, start_node: str, end_node: str, latency_threshold: int) -> int:
+        """
+        The number of different traces from start_node to end_node with an average latency of less than latency_threshold.
+        :param start_node: the source node
+        :param end_node: the target node
+        :param latency_threshold: total average latency pe has to be less than given value
+        :return: number of traces
+        """
+        all_max_length_paths = list(self._traverse_for_max_latency_path(start_node, latency_threshold))
+        mixed_length_paths = list(all_max_length_paths)
+
+        for path in all_max_length_paths:
+            shorter_paths = [path[0:length + 1] for length in range(1, len(path))]
+            mixed_length_paths += shorter_paths
+
+        return len([path for path in set(mixed_length_paths) if path[-1] == end_node])
+
+    def _traverse_for_max_hops_path(self, current_node: str, hops_left: int) -> list:
         if hops_left == 0:
             yield current_node
         else:
             for successor in self.graph.successors(current_node):
-                for path in self._traverse_for_path(successor, hops_left - 1):
+                for path in self._traverse_for_max_hops_path(successor, hops_left - 1):
+                    yield current_node + path
+
+    def _traverse_for_max_latency_path(self, current_node: str, latency_left: int) -> list:
+        if latency_left <= 0:
+            yield ""
+        else:
+            for successor in self.graph.successors(current_node):
+                weight = nx.get_edge_attributes(self.graph, GRAPH_EDGE_ATTRIBUTE_AVG_LATENCY)[(current_node, successor)]
+                for path in self._traverse_for_max_latency_path(successor, latency_left - weight):
                     yield current_node + path
 
     def _clone_with_duplicate_nodes(self):
@@ -77,7 +106,7 @@ class Graph:
         # We will clone the graph and add for each node a duplicate node' with all original outgoing edges.
         graph_clone = self.graph.copy()
         outgoing_edges = graph_clone.edges()
-        new_start_edges = [(u + "'", v, graph_clone.get_edge_data(u, v)["weight"]) for u, v in outgoing_edges]
+        new_start_edges = [(u + "'", v, graph_clone.get_edge_data(u, v)[GRAPH_EDGE_ATTRIBUTE_AVG_LATENCY]) for u, v in outgoing_edges]
         graph_clone.add_weighted_edges_from(new_start_edges)
         return graph_clone
 

@@ -25,6 +25,9 @@ class TestGraphTrace(unittest.TestCase):
         self.assertEqual(9, self.test_graph.shortest_trace("A", "C"))
         self.assertEqual(9, self.test_graph.shortest_trace("B", "B"))
 
+    def test_number_of_traces_shorter(self):
+        self.assertEqual(7, self.test_graph.number_of_traces_shorter("C", "C", 30))
+
 
 if __name__ == '__main__':
     unittest.main()
